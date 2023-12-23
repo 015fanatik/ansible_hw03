@@ -49,6 +49,7 @@ ___
 ```yaml
 
 ---
+---
 - name: Install Clickhouse
   hosts: clickhouse
   handlers:
@@ -79,6 +80,55 @@ ___
           - clickhouse-server-{{ clickhouse_version }}.rpm
       notify: Start clickhouse service
 
+    - name: Flush handlers
+      meta: flush_handlers
+
+- name: Install nginx
+  hosts: lighthouse
+  become: true
+  become_user: root
+  handlers:
+    - name: nginx systemd
+      systemd:
+        name: nginx
+        enabled: yes
+        state: started
+  tasks:
+    - name: Install EPEL Repo
+      yum:
+        name=epel-release
+        state=present
+
+    - name: Install Nginx Web Server
+      yum:
+        name=nginx
+
+    - name: Install git
+      yum:
+        name=git
+
+    - name: write using jinja2
+      ansible.builtin.template:
+         src: ./group_vars/nginx.yaml.j2
+         mode: 0644
+         dest: /etc/nginx/nginx.conf
+         owner: nginx
+         group: nginx
+
+    - name: Rm folder
+      ansible.builtin.command: "rm -rf /tmp/nginx/"
+
+    - name: Git clone
+      ansible.builtin.command: "git clone https://github.com/VKCOM/lighthouse.git /tmp/nginx/"
+
+    - name: Rm site folder
+      ansible.builtin.command: "rm -rf /usr/share/nginx/index"
+
+    - name: Cp
+      ansible.builtin.command: "cp -R /tmp/nginx/ /usr/share/nginx/index"
+      notify: nginx systemd
+
+
     - name: Create database
       ansible.builtin.command: "clickhouse-client -q 'create database logs;'"
       register: create_db
@@ -87,7 +137,7 @@ ___
 
 - name: Install Vector
   hosts: vector
-  become: yes
+  become: true
   become_user: root
   handlers:
     - name: Start vector service
