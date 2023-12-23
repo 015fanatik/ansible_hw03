@@ -32,7 +32,8 @@
   -/group_vars  
       /clickhouse
       /vector   
-      -vector.yaml.j2  
+      -vector.yaml.j2
+      -nginx.yaml.j2  
   -/invetnory  
       -prod.yml  
   -site.yaml   
